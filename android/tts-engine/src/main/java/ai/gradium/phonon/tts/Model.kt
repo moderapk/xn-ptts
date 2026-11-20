@@ -18,10 +18,19 @@ import java.util.concurrent.TimeUnit
 object Model {
     private const val TAG = "PhononModel"
 
-    /** The languages the runtime normalizes text for. */
+    /** The languages the runtime normalizes text for. "fa" added for Cilla-mini (Persian):
+     * the Rust core has no Persian normalization, so fa is normalized as "none" — see
+     * [normalizeLang]. */
     val SUPPORTED = listOf(
-        "en", "fr", "de", "es", "pt", "ar", "hi", "ko", "pl", "sv", "fi", "no", "it", "nl", "ja",
+        "en", "fr", "de", "es", "pt", "ar", "hi", "ko", "pl", "sv", "fi", "no", "it", "nl", "ja", "fa",
     )
+
+    /**
+     * The normalize language the Rust core takes for a code. It has no Persian
+     * normalization, so Persian reads as written ("none") — the same as the model's
+     * own say_fa.py, which runs with --lang none.
+     */
+    fun normalizeLang(code: String) = if (code == "fa") "none" else code
 
     /** Loaded models. Calls into one must hold its lock: the library takes one call at a time. */
     class Loaded(val tts: PhononTTS, val speakers: List<String>, val languages: List<String>) {
@@ -83,7 +92,7 @@ object Model {
                 // core is too many on phones that mix fast and slow cores. A value already set wins.
                 Os.setenv("RAYON_NUM_THREADS", THREADS.toString(), false)
                 // Text is normalized per request with setLanguage; this is only the first one.
-                val tts = PhononTTS(dir, languages.firstOrNull() ?: "none")
+                val tts = PhononTTS(dir, normalizeLang(languages.firstOrNull() ?: "none"))
                 State.Ready(Loaded(tts, tts.voices, languages))
             } catch (t: Throwable) {
                 Log.e(TAG, "loading $dir failed", t)

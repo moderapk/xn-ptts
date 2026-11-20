@@ -539,3 +539,20 @@ inclusion in this repository is dual licensed as above.
 </p>
 
 <p align="center"><sub>MADE BY GRADIUM · OPEN WEIGHTS · ON-DEVICE</sub></p>
+
+## Persian (fa) support — fork addition
+
+This fork adds Persian support to the Android TTS engine, for the
+[Cilla-mini](https://huggingface.co/mehdi-hf/cilla-mini) Persian TTS model
+(Pocket TTS) as a voice for OsmAnd+ navigation:
+
+- `Model.kt`: `"fa"` added to `SUPPORTED`; Persian is normalized as `"none"`
+  (the Rust core has no Persian normalization — the same as the model's own
+  `speak_fa.py`, which runs with `--lang none`).
+- `PhononService.kt`: Persian text is normalized with `PersianText` before
+  synthesis.
+- `PersianText.kt` (new): a full port of the model's `normalize_fa.py` —
+  digits to Persian words, Arabic diacritics stripped, Latin words dropped,
+  Latin punctuation folded to Persian.
+
+The model itself is unchanged; only the text fed to it is cleaned first.

@@ -100,9 +100,12 @@ class PhononService : TextToSpeechService() {
         }
         try {
             synchronized(model) {
-                model.tts.setLanguage(lang)
+                model.tts.setLanguage(Model.normalizeLang(lang))
                 speaker?.let { model.tts.setVoice(it) }
-                model.tts.speak(text) { pcm -> !stopped && send(pcm) }
+                // Cilla-mini was trained on numbers spelled out as words, so raw
+                // digits come out garbled; spell them out for Persian first.
+                val spokenText = if (lang == "fa") PersianText.normalize(text) else text
+                model.tts.speak(spokenText) { pcm -> !stopped && send(pcm) }
             }
             callback.done()
         } catch (e: Exception) {
