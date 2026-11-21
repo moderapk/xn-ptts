@@ -11,6 +11,7 @@ import android.view.ViewGroup.LayoutParams.WRAP_CONTENT
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.ScrollView
+import android.widget.SeekBar
 import android.widget.TextView
 import java.io.File
 import kotlin.concurrent.thread
@@ -41,6 +42,24 @@ class SettingsActivity : Activity() {
             text = getString(R.string.system_settings)
             setOnClickListener { startActivity(Intent("com.android.settings.TTS_SETTINGS")) }
         }
+        // Volume slider (route 1): one fixed gain, 100% to 300% in steps of 5%.
+        val volumeLabel = TextView(this).apply { setPadding(0, pad, 0, 0) }
+        val volumeSeek = SeekBar(this).apply {
+            max = VolumeGain.STEPS
+            progress = VolumeGain.percentToStep(loadVolume())
+        }
+        fun showVolume() {
+            volumeLabel.text = getString(R.string.volume_label, VolumeGain.stepToPercent(volumeSeek.progress))
+        }
+        volumeSeek.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                if (fromUser) saveVolume(VolumeGain.stepToPercent(progress))
+                showVolume()
+            }
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+        })
+        showVolume()
         val help = TextView(this).apply {
             text = getString(R.string.import_help)
             setPadding(0, pad, 0, 0)
@@ -48,7 +67,7 @@ class SettingsActivity : Activity() {
         val column = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(pad, pad, pad, pad)
-            for (v in listOf(title, status, importButton, systemSettings, help)) addView(v, MATCH_PARENT, WRAP_CONTENT)
+            for (v in listOf(title, status, importButton, systemSettings, volumeLabel, volumeSeek, help)) addView(v, MATCH_PARENT, WRAP_CONTENT)
         }
         // Keeps clear of the status and navigation bars, which the app draws under.
         setContentView(ScrollView(this).apply { fitsSystemWindows = true; addView(column) })
@@ -79,6 +98,16 @@ class SettingsActivity : Activity() {
                 if (error != null) status.text = getString(R.string.import_failed, error)
             }
         }
+    }
+
+    /** The saved volume percent (100-300), read by the service on every request. */
+    private fun loadVolume(): Int =
+        getSharedPreferences(VolumeGain.PREFS_NAME, MODE_PRIVATE)
+            .getInt(VolumeGain.PREF_KEY, VolumeGain.DEFAULT_PERCENT)
+
+    private fun saveVolume(percent: Int) {
+        getSharedPreferences(VolumeGain.PREFS_NAME, MODE_PRIVATE).edit()
+            .putInt(VolumeGain.PREF_KEY, percent).apply()
     }
 
     private fun refresh() {

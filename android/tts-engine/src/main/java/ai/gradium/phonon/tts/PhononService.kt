@@ -87,9 +87,12 @@ class PhononService : TextToSpeechService() {
             return
         }
         val max = callback.maxBufferSize
+        // Volume slider (route 1): one fixed gain for everything, read per request.
+        val volumePercent = getSharedPreferences(VolumeGain.PREFS_NAME, MODE_PRIVATE)
+            .getInt(VolumeGain.PREF_KEY, VolumeGain.DEFAULT_PERCENT)
         // Whether Android still takes audio: it stops taking it once this request is stopped.
         fun send(pcm: FloatArray): Boolean {
-            val bytes = pcm16(pcm)
+            val bytes = pcm16(VolumeGain.apply(pcm, volumePercent))
             var at = 0
             while (at < bytes.size) {
                 val n = minOf(max, bytes.size - at)
